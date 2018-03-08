@@ -18,6 +18,35 @@ func (this *UserController) RetData(resp interface{}) {
 	this.ServeJSON()
 }
 
+func (this *UserController) GetUserInfo() {
+
+	resp := make(map[string]interface{})
+	resp["errno"] = models.RECODE_OK
+	resp["errmsg"] = models.RecodeText(models.RECODE_OK)
+	defer this.RetData(resp)
+	userid := this.GetSession("user_id")
+	if userid == nil {
+		resp["errno"] = models.RECODE_LOGINERR
+		resp["errmsg"] = models.RecodeText(models.RECODE_LOGINERR)
+		return
+	}
+
+	var user models.User
+	user.Id = userid.(int)
+
+	o := orm.NewOrm()
+	qs := o.QueryTable("user")
+	if err := qs.Filter("id", user.Id).One(&user); err != nil {
+
+		resp["errno"] = models.RECODE_DBERR
+		resp["errmsg"] = models.RecodeText(models.RECODE_DBERR)
+		return
+	}
+
+	resp["data"] = user
+
+}
+
 func (this *UserController) Reg() {
 	resp := make(map[string]interface{})
 	resp["errno"] = models.RECODE_OK
