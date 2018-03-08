@@ -17,6 +17,33 @@ func (this *UserController) RetData(resp interface{}) {
 	this.Data["json"] = resp
 	this.ServeJSON()
 }
+func (this *UserController) UpdataUserName() {
+	resp := make(map[string]interface{})
+	resp["errno"] = models.RECODE_OK
+	resp["errmsg"] = models.RecodeText(models.RECODE_OK)
+	defer this.RetData(resp)
+	userid := this.GetSession("user_id")
+	if userid == nil {
+		resp["errno"] = models.RECODE_LOGINERR
+		resp["errmsg"] = models.RecodeText(models.RECODE_LOGINERR)
+		return
+	}
+	var usernamemap map[string]interface{}
+	json.Unmarshal(this.Ctx.Input.RequestBody, &usernamemap)
+	//	beego.Info(usernamemap)
+	var user models.User
+	user.Id = userid.(int)
+	user.Name = usernamemap["name"].(string)
+	o := orm.NewOrm()
+	if _, err := o.Update(&user, "name"); err != nil {
+		resp["errno"] = models.RECODE_DBERR
+		resp["errmsg"] = models.RecodeText(models.RECODE_DBERR)
+		return
+	}
+
+	resp["data"] = usernamemap
+
+}
 
 func (this *UserController) GetUserInfo() {
 
@@ -46,7 +73,70 @@ func (this *UserController) GetUserInfo() {
 	resp["data"] = user
 
 }
+func (this *UserController) GetUserRealInfo() {
 
+	resp := make(map[string]interface{})
+	resp["errno"] = models.RECODE_OK
+	resp["errmsg"] = models.RecodeText(models.RECODE_OK)
+	defer this.RetData(resp)
+	userid := this.GetSession("user_id")
+	if userid == nil {
+		resp["errno"] = models.RECODE_LOGINERR
+		resp["errmsg"] = models.RecodeText(models.RECODE_LOGINERR)
+		return
+	}
+
+	var user models.User
+	user.Id = userid.(int)
+
+	o := orm.NewOrm()
+	qs := o.QueryTable("user")
+	if err := qs.Filter("id", user.Id).One(&user); err != nil {
+
+		resp["errno"] = models.RECODE_DBERR
+		resp["errmsg"] = models.RecodeText(models.RECODE_DBERR)
+		return
+	}
+	realusermap := make(map[string]interface{})
+	realusermap["user_id"] = user.Id
+	realusermap["name"] = user.Name
+	realusermap["password"] = user.Password_hash
+	realusermap["mobile"] = user.Mobile
+	realusermap["real_name"] = user.Real_name
+	realusermap["id_card"] = user.Id_card
+	realusermap["avatar_url"] = user.Avatar_url
+
+	resp["data"] = realusermap
+
+}
+func (this *UserController) UpdataUserRealInfo() {
+	resp := make(map[string]interface{})
+	resp["errno"] = models.RECODE_OK
+	resp["errmsg"] = models.RecodeText(models.RECODE_OK)
+	defer this.RetData(resp)
+	userid := this.GetSession("user_id")
+	if userid == nil {
+		resp["errno"] = models.RECODE_LOGINERR
+		resp["errmsg"] = models.RecodeText(models.RECODE_LOGINERR)
+		return
+	}
+	var usernamemap map[string]interface{}
+	json.Unmarshal(this.Ctx.Input.RequestBody, &usernamemap)
+	//	beego.Info(usernamemap)
+	var user models.User
+	user.Id = userid.(int)
+	user.Real_name = usernamemap["real_name"].(string)
+	user.Id_card = usernamemap["id_card"].(string)
+	o := orm.NewOrm()
+	if _, err := o.Update(&user, "id_card", "real_name"); err != nil {
+		resp["errno"] = models.RECODE_DBERR
+		resp["errmsg"] = models.RecodeText(models.RECODE_DBERR)
+		return
+	}
+
+	//	resp["data"] = usernamemap
+
+}
 func (this *UserController) Reg() {
 	resp := make(map[string]interface{})
 	resp["errno"] = models.RECODE_OK
