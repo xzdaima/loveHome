@@ -52,7 +52,7 @@ func (this *SessionController) DeleteSession() {
 	defer this.RetData(resp)
 
 	this.DelSession("name")
-	this.DelSession("uer_id")
+	this.DelSession("user_id")
 	this.DelSession("mobile")
 
 	return
