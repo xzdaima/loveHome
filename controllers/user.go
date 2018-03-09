@@ -17,6 +17,7 @@ func (this *UserController) RetData(resp interface{}) {
 	this.Data["json"] = resp
 	this.ServeJSON()
 }
+
 func (this *UserController) UpdataUserName() {
 	resp := make(map[string]interface{})
 	resp["errno"] = models.RECODE_OK
@@ -32,7 +33,10 @@ func (this *UserController) UpdataUserName() {
 	json.Unmarshal(this.Ctx.Input.RequestBody, &usernamemap)
 	//	beego.Info(usernamemap)
 	var user models.User
-	user.Id = userid.(int)
+	var derr bool
+	if user.Id, derr = userid.(int); derr == false {
+		user.Id = (int)(userid.(int64))
+	}
 	user.Name = usernamemap["name"].(string)
 	o := orm.NewOrm()
 	if _, err := o.Update(&user, "name"); err != nil {
@@ -59,7 +63,10 @@ func (this *UserController) GetUserInfo() {
 	}
 
 	var user models.User
-	user.Id = userid.(int)
+	var derr bool
+	if user.Id, derr = userid.(int); derr == false {
+		user.Id = (int)(userid.(int64))
+	}
 
 	o := orm.NewOrm()
 	qs := o.QueryTable("user")
@@ -87,11 +94,15 @@ func (this *UserController) GetUserRealInfo() {
 	}
 
 	var user models.User
-	user.Id = userid.(int)
+	var derr bool
+	user.Id, derr = userid.(int)
+	if derr == false {
+		user.Id = (int)(userid.(int64))
+	}
 
 	o := orm.NewOrm()
 	qs := o.QueryTable("user")
-	if err := qs.Filter("id", user.Id).One(&user); err != nil {
+	if err := qs.Filter("id", user.Id).RelatedSel().One(&user); err != nil {
 
 		resp["errno"] = models.RECODE_DBERR
 		resp["errmsg"] = models.RecodeText(models.RECODE_DBERR)
@@ -105,7 +116,7 @@ func (this *UserController) GetUserRealInfo() {
 	realusermap["real_name"] = user.Real_name
 	realusermap["id_card"] = user.Id_card
 	realusermap["avatar_url"] = user.Avatar_url
-
+	beego.Info(realusermap)
 	resp["data"] = realusermap
 
 }
@@ -124,7 +135,10 @@ func (this *UserController) UpdataUserRealInfo() {
 	json.Unmarshal(this.Ctx.Input.RequestBody, &usernamemap)
 	//	beego.Info(usernamemap)
 	var user models.User
-	user.Id = userid.(int)
+	var derr bool
+	if user.Id, derr = userid.(int); derr == false {
+		user.Id = (int)(userid.(int64))
+	}
 	user.Real_name = usernamemap["real_name"].(string)
 	user.Id_card = usernamemap["id_card"].(string)
 	o := orm.NewOrm()
@@ -229,20 +243,28 @@ func (this *UserController) UploadAvatar() {
 		resp["errmsg"] = models.RecodeText(models.RECODE_LOGINERR)
 		return
 	}
+	var tempuser models.User
+	o := orm.NewOrm()
+	res := o.QueryTable("user")
+	res.Filter("id", user_id).One(&tempuser)
+	if tempuser.Avatar_url != "" {
+		models.FDFSDeletFile(tempuser.Avatar_url)
+	}
 
 	file, header, err := this.GetFile("avatar")
 	if err != nil {
 		resp["errno"] = models.RECODE_SERVERERR
-
 		resp["errmsg"] = models.RecodeText(models.RECODE_SERVERERR)
 		return
 	}
+
 	fileBuffer := make([]byte, header.Size)
 	if _, err := file.Read(fileBuffer); err != nil {
 		resp["errno"] = models.RECODE_IOERR
 		resp["errmsg"] = models.RecodeText(models.RECODE_IOERR)
 		return
 	}
+
 	suffix := path.Ext(header.Filename)
 	groupName, fileId, err := models.FDFSUploadByBuffer(fileBuffer, suffix)
 	if err != nil {
@@ -253,16 +275,11 @@ func (this *UserController) UploadAvatar() {
 	}
 	beego.Info("fdfs upload succ groupname=", groupName, "fileid=", fileId)
 
-	user := models.User{Id: user_id.(int), Avatar_url: fileId}
-
-	var tempuser models.User
-	o := orm.NewOrm()
-	res := o.QueryTable("user")
-	res.Filter("id", user.Id).One(&tempuser)
-	if tempuser.Avatar_url != "" {
-		models.FDFSDeletFile(tempuser.Avatar_url)
+	user := models.User{Avatar_url: fileId}
+	var derr bool
+	if user.Id, derr = user_id.(int); derr == false {
+		user.Id = (int)(user_id.(int64))
 	}
-
 	if _, err := o.Update(&user, "avatar_url"); err != nil {
 		resp["errno"] = models.RECODE_DBERR
 		resp["errmsg"] = models.RecodeText(models.RECODE_DBERR)
