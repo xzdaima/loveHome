@@ -47,7 +47,7 @@ type House struct {
 var HOME_PAGE_MAX_HOUSES int = 5
 
 //房屋列表页面每页显示条目数
-var HOUSE_LIST_PAGE_CAPACITY int = 2
+var HOUSE_LIST_PAGE_CAPACITY int = 5
 
 /* 区域信息 table_name = area */
 type Area struct {
